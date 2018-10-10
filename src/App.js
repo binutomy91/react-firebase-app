@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import firebase from './firebase.js';
+import firebase, { auth, provider } from './firebase.js';
 
 import './App.css';
 
@@ -9,11 +9,17 @@ class App extends Component {
     this.state = {
       currentItem: '',
       username: '',
-      items: []
+      items: [],
+      user: null 
     };
   }
 
   componentDidMount() {
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        this.setState({ user });
+      } 
+    });
     const itemsRef = firebase.database().ref('items');
     itemsRef.on('value', snapshot => {
       let items = snapshot.val();
@@ -56,14 +62,49 @@ class App extends Component {
     });
   };
 
+  login = () => {
+    auth.signInWithPopup(provider) 
+    .then((result) => {
+      const user = result.user;
+      this.setState({
+        user
+      });
+    });
+  }
+
+  logout = () => {
+    auth.signOut()
+      .then(() => {
+        this.setState({
+          user: null
+        });
+      });
+  }
+
   render() {
     return (
       <div className="app">
         <header>
-          <div className="wrapper">
-            <h1>Your Fav Sport</h1>
-          </div>
+        <div className="wrapper">
+          <h1>Fun Food Friends</h1>
+          {this.state.user ?
+            <button onClick={this.logout}>Log Out</button>                
+            :
+            <button onClick={this.login}>Log In</button>              
+          }
+        </div>
         </header>
+        {this.state.user ?
+          <div>
+            <div className='user-profile'>
+              <img src={this.state.user.photoURL} />
+            </div>
+          </div>
+          :
+          <div className='wrapper'>
+            <p>You must be logged in to see the potluck list and submit to it.</p>
+          </div>
+        }
         <div className="container">
           <section className="add-item">
             <form onSubmit={this.handleSubmit}>
